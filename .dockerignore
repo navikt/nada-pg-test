@@ -1,6 +1,0 @@
-*
-!pkg
-!sqlc.yaml
-!main.go
-!go.mod
-!go.sum

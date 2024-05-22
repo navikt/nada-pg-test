@@ -77,9 +77,9 @@ func minMaxAvg(times []time.Duration) (time.Duration, time.Duration, float64) {
 }
 
 func getConnString() string {
-	if os.Getenv("NAIS_DATABASE_NADA_DB_TESTA_NADA_DB_TEST_URL") == "" {
+	if os.Getenv("DB_URL") == "" {
 		return "postgres://postgres:postgres@localhost:5432/nada?sslmode=disable"
 	}
 
-	return os.Getenv("NAIS_DATABASE_NADA_DB_TESTA_NADA_DB_TEST_URL") + "?sslmode=disable"
+	return os.Getenv("DB_URL") + "?sslmode=disable"
 }

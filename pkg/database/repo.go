@@ -10,7 +10,6 @@ import (
 
 	"github.com/navikt/nada-pg-test/pkg/database/gensql"
 	"github.com/pressly/goose/v3"
-	"github.com/sirupsen/logrus"
 
 	_ "github.com/lib/pq"
 )
@@ -20,9 +19,7 @@ var embedMigrations embed.FS
 
 type Repo struct {
 	querier Querier
-	encKey  string
 	db      *sql.DB
-	log     *logrus.Entry
 }
 
 type Querier interface {
@@ -30,7 +27,7 @@ type Querier interface {
 	WithTx(tx *sql.Tx) *gensql.Queries
 }
 
-func New(dbConnDSN string, log *logrus.Entry) (*Repo, error) {
+func New(dbConnDSN string) (*Repo, error) {
 	db, err := sql.Open("postgres", dbConnDSN)
 	if err != nil {
 		return nil, fmt.Errorf("open sql connection: %w", err)
@@ -46,7 +43,6 @@ func New(dbConnDSN string, log *logrus.Entry) (*Repo, error) {
 	return &Repo{
 		querier: gensql.New(db),
 		db:      db,
-		log:     log,
 	}, nil
 }
 

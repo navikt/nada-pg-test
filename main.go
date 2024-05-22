@@ -2,50 +2,62 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/navikt/nada-pg-test/pkg/database"
-	"github.com/sirupsen/logrus"
-)
-
-const (
-	numInserts = 100
 )
 
 func main() {
 	ctx := context.Background()
 	connString := getConnString()
 
-	log := logrus.New()
-	repo, err := database.New(connString, log.WithField("subsystem", "database"))
+	numInserts, err := strconv.Atoi(os.Getenv("NUM_INSERTS"))
+	if numInserts == 0 || err != nil {
+		numInserts = 100
+	}
+
+	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	repo, err := database.New(connString)
 	if err != nil {
 		panic(err)
 	}
 
 	data := map[string]any{"test": map[string]any{"key": "data"}}
 
-	log.Infof("Running %v db inserts", numInserts)
+	for {
+		log.Info(fmt.Sprintf("Running %v inserts", numInserts))
+		times, err := runInserts(ctx, repo, data, numInserts)
+		if err != nil {
+			log.Error(err.Error())
+		}
+
+		min, max, avg := minMaxAvg(times)
+
+		log.Info(fmt.Sprintf("Minimum time: %v", min))
+		log.Info(fmt.Sprintf("Maximum time: %v", max))
+		log.Info(fmt.Sprintf("Average time (ms): %v", avg/1000000))
+
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func runInserts(ctx context.Context, repo *database.Repo, data map[string]any, numInserts int) ([]time.Duration, error) {
 	times := []time.Duration{}
 	for i := 0; i < numInserts; i++ {
 		elapsed, err := repo.InsertData(ctx, data)
 		if err != nil {
-			panic(err)
+			return times, err
 		}
 		times = append(times, elapsed)
 		time.Sleep(20 * time.Millisecond)
 	}
-
-	min, max, avg := minMaxAvg(times)
-
-	log.Info("Minimum time: ", min)
-	log.Info("Maximum time: ", max)
-	log.Info("Average time (ms): ", avg/1000000)
-
-	for {
-		time.Sleep(5 * time.Second)
-	}
+	return times, nil
 }
 
 func minMaxAvg(times []time.Duration) (time.Duration, time.Duration, float64) {
